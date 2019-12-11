@@ -1,7 +1,6 @@
-const admin = require('firebase-admin');
 const { body, query } = require('express-validator');
 const { createEndpoint } = require('./helpers');
-const collectionNames = require('../collectionNames');
+const { Door, User, DoorUser } = require('../models');
 
 const validation = [
   body('phoneNumber').isString(),
@@ -11,22 +10,20 @@ const validation = [
 async function addDoorUser(req, res) {
   const { doorId } = req.query;
   const { phoneNumber } = req.body;
-  const db = admin.firestore();
 
   let door;
   try {
-    door = await db.collection(collectionNames.Door).doc(doorId).get();
+    door = await Door.getById(doorId);
   } catch (e) {
     throw e;
   }
-  if(!door.exists) {
+  if(!door) {
     return res.status(401).send(`No door found with id ${doorId}`);
   }
 
   let user;
   try {
-    const snapshot = await db.collection(collectionNames.User).where('phoneNumber', '==', phoneNumber).get();
-    user = snapshot.empty ? null : snapshot.docs[0];
+    [user] = await User.getByFields({ phoneNumber });
   } catch (e) {
     throw e;
   }
@@ -35,7 +32,7 @@ async function addDoorUser(req, res) {
   }
 
   try {
-    const doorUser = await db.collection(collectionNames.DoorUser).add({
+    const doorUser = await DoorUser.create({
       doorId,
       userId: user.id
     });

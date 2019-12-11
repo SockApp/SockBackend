@@ -1,11 +1,11 @@
-const admin = require('firebase-admin');
 const { query } = require('express-validator');
 const { createEndpoint } = require('./helpers');
 const { doorUserExists, resolveDoor } = require('./middlewares');
-const collectionNames = require('../collectionNames');
+const { Door } = require('../models');
 
 const validation = [
   query('doorId').isString(),
+  query('userId').isString(),
 ];
 
 const middlewares = [
@@ -15,11 +15,16 @@ const middlewares = [
 
 async function removeSock(req, res) {
   const { door } = res.locals;
-  const db = admin.firestore();
+  const { userId } = req.query;
+
+  if(door.sockOwner !== userId) {
+    return res.status(403).send('User does not currently have a sock on the door');
+  }
 
   try {
-    await db.collection(collectionNames.Door).doc(door.id)
-      .update({ sockOwner: admin.firestore.FieldValue.delete() });
+    await Door.update(door.id, {
+      sockOwner: Door.ops.DELETE
+    });
     return res.sendStatus(200);
   } catch (e) {
     throw e;

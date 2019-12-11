@@ -18,10 +18,6 @@ async function sockDoor(req, res) {
   const { userId } = req.query;
   const db = admin.firestore();
 
-  if(door.sockOwner !== userId) {
-    return res.status(403).send('User does not currently have a sock on the door');
-  }
-
   try {
     await db.collection(collectionNames.Door).doc(door.id)
       .update({ sockOwner: userId });
