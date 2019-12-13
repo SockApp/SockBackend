@@ -15,10 +15,10 @@ function createEndpoint (method, endpoint, {
   path = '/',
   validation,
   middlewares,
-  auth = false
+  auth = true
 } = {}) {
   const app = express();
-  app.use(bodyParser.json())
+  app.use(bodyParser.json());
   if(auth) {
     app.use(verifyFirebaseToken)
   }

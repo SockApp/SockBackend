@@ -9,7 +9,7 @@ const schema = {
     icon: { type: 'string' },
     sockIcon: { type: 'string' },
   },
-  required: ['firstName', 'lastName', 'phoneNumber', 'icon', 'sockIcon']
+  required: ['phoneNumber']
 };
 
 const collectionName = 'Users';

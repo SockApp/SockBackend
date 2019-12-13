@@ -17,51 +17,43 @@ describe('Sock', () => {
   admin.initializeApp(functions.config().firebase);
   const db = admin.firestore();
 
+  const user1 = {
+    firstName: 'Test',
+    lastName: 'User1',
+    phoneNumber: '2149733164'
+  };
+
+  const user2 = {
+    firstName: 'Test',
+    lastName: 'User2',
+    phoneNumber: '1111111111'
+  };
+
+  const door = {
+    name: 'New Room',
+    location: {
+      latitude: 12,
+      longitude: 12
+    }
+  };
+
   before(async () => {
     myFunctions = require('../index');
 
-    await db.collection('Users').doc(user1Id).set({
-      firstName: 'Test',
-      lastName: 'User1',
-      phoneNumber: '2149733164'
-    });
-
-    await db.collection('Users').doc(user2Id).set({
-      firstName: 'Test',
-      lastName: 'User2',
-      phoneNumber: '1111111111'
-    });
+    await db.collection('Users').doc(user1Id).set(user1);
+    await db.collection('Users').doc(user2Id).set(user2);
   });
 
   after(async () => {
     await db.collection('Doors').doc(doorId).delete();
-    await db.collection('DoorUsers').where('doorId', '==', doorId).get()
-      .then((querySnapshot) => {
-        // Once we get the results, begin a batch
-        const batch = db.batch();
-
-        querySnapshot.forEach(doc =>  {
-          // For each doc, add a delete operation to the batch
-          batch.delete(doc.ref);
-        });
-
-        // Commit the batch
-        return batch.commit();
-      });
+    await db.collection('Users').doc(user1Id).delete();
+    await db.collection('Users').doc(user2Id).delete();
   });
 
   it('should create a door', () => {
-    const data = {
-      name: 'New Room',
-      location: {
-        latitude: 12,
-        longitude: 12
-      }
-    };
-
     return request(myFunctions.door)
       .post('/')
-      .send(data)
+      .send(door)
       .query({
         userId: user1Id
       })
@@ -70,16 +62,17 @@ describe('Sock', () => {
         assert.property(res.body, 'doorId');
         doorId = res.body.doorId;
         const doc = await db.collection('Doors').doc(doorId).get();
-        assert.deepEqual(doc.data(), Object.assign({ owner: user1Id }, data));
 
-        const snapshot = await db.collection('DoorUsers')
-          .where('doorId', '==', doorId)
-          .get();
-        assert.equal(snapshot.docs.length, 1);
-        assert.deepEqual(snapshot.docs[0].data(), {
-          doorId,
-          userId: user1Id
-        });
+        const target = Object.assign(
+          {
+            owner: user1Id,
+            users: {
+              [user1Id]: true
+            }
+          },
+          door
+        );
+        assert.deepEqual(doc.data(), target);
       });
   });
 
@@ -93,16 +86,19 @@ describe('Sock', () => {
         phoneNumber: '1111111111',
       })
       .then(async (res) => {
-        assert.equal(res.status, 201);
-        const snapshot = await db.collection('DoorUsers')
-          .where('doorId', '==', doorId)
-          .where('userId', '==', user2Id)
-          .get();
-        assert.equal(snapshot.docs.length, 1);
-        assert.deepEqual(snapshot.docs[0].data(), {
-          doorId,
-          userId: user2Id
-        });
+        assert.equal(res.status, 200);
+        const doc = await db.collection('Doors').doc(doorId).get();
+        const target = Object.assign(
+          {
+            owner: user1Id,
+            users: {
+              [user1Id]: true,
+              [user2Id]: true
+            }
+          },
+          door,
+        );
+        assert.deepEqual(doc.data(), target);
       });
   });
 

@@ -1,6 +1,6 @@
 const { query } = require('express-validator');
 const { createEndpoint } = require('./helpers');
-const { doorUserExists, resolveDoor } = require('./middlewares');
+const { resolveDoor } = require('./middlewares');
 const { Door } = require('../models');
 
 const validation = [
@@ -9,7 +9,6 @@ const validation = [
 ];
 
 const middlewares = [
-  doorUserExists,
   resolveDoor
 ];
 

@@ -18,19 +18,24 @@ function documentFactory(collectionName, schema) {
       const ref = id ? this.collection.doc(id) : this.collection.doc();
       try {
         await ref.set(doc);
-        return ref.id;
+        return Object.assign({ id: ref.id }, doc);
       } catch (e) {
         throw e;
       }
     }
 
-    static async getById(id) {
+    static async getById(id, { strict = true } = {}) {
+      let doc;
       try {
-        const doc = await this.collection.doc(id).get();
-        return formatDoc(doc);
+        doc = await this.collection.doc(id).get();
       } catch (e) {
         throw e;
       }
+
+      if(!doc.exists && strict) {
+        throw new Error('Document not found');
+      }
+      return formatDoc(doc);
     }
 
     static async getByFields(fields) {

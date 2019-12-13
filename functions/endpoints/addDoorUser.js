@@ -1,6 +1,6 @@
 const { body, query } = require('express-validator');
 const { createEndpoint } = require('./helpers');
-const { Door, User, DoorUser } = require('../models');
+const { Door, User } = require('../models');
 
 const validation = [
   body('phoneNumber').isString(),
@@ -32,12 +32,8 @@ async function addDoorUser(req, res) {
   }
 
   try {
-    const doorUser = await DoorUser.create({
-      doorId,
-      userId: user.id
-    });
-
-    return res.status(201).send({ doorUserId: doorUser.id });
+    await Door.addUser(door, user);
+    return res.sendStatus(200);
   } catch (e) {
     throw e;
   }
