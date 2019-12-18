@@ -26,9 +26,9 @@ Door.addUser = (door, user) => {
   })
 };
 
-Door.sockDoor = (door, user) => {
+Door.sockDoor = (door, userId) => {
   return Door.update(door.id, {
-    sockOwner: user.id
+    sockOwner: userId
   });
 };
 

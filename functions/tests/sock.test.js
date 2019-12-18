@@ -1,10 +1,8 @@
-const test = require('firebase-functions-test', {
-  projectId: 'sock-91ac3',
-}, '../sock-91ac3-6546e2b9e653.json');
 const admin = require('firebase-admin');
 const functions = require('firebase-functions');
 const chai = require('chai');
 const chaiHttp = require('chai-http');
+const createApp = require('../app');
 
 chai.use(chaiHttp);
 const { assert, request } = chai;
@@ -12,8 +10,10 @@ const { assert, request } = chai;
 describe('Sock', () => {
   const user1Id = 'user1Id';
   const user2Id = 'user2Id';
-  let myFunctions;
+  let app;
   let doorId;
+  let authUser;
+
   admin.initializeApp(functions.config().firebase);
   const db = admin.firestore();
 
@@ -38,7 +38,7 @@ describe('Sock', () => {
   };
 
   before(async () => {
-    myFunctions = require('../index');
+    app = createApp({ auth: authStub });
 
     await db.collection('Users').doc(user1Id).set(user1);
     await db.collection('Users').doc(user2Id).set(user2);
@@ -51,8 +51,10 @@ describe('Sock', () => {
   });
 
   it('should create a door', () => {
-    return request(myFunctions.door)
-      .post('/')
+    authUser = { uid: user1Id };
+
+    return request(app)
+      .post('/doors')
       .send(door)
       .query({
         userId: user1Id
@@ -77,11 +79,10 @@ describe('Sock', () => {
   });
 
   it('should add a user to the door', () => {
-    return request(myFunctions.doorUser)
-      .post('/')
-      .query({
-        doorId
-      })
+    authUser = { uid: user1Id };
+
+    return request(app)
+      .post(`/doors/${doorId}/users`)
       .send({
         phoneNumber: '1111111111',
       })
@@ -103,32 +104,32 @@ describe('Sock', () => {
   });
 
   it('should put a sock on the door', () => {
-    return request(myFunctions.sockDoor)
-      .post('/')
-      .query({
-        doorId,
-        userId: user1Id
-      })
+    authUser = { uid: user2Id };
+
+    return request(app)
+      .post(`/doors/${doorId}/sock`)
       .then(async res => {
         assert.equal(res.status, 200);
 
         const door = await db.collection('Doors').doc(doorId).get();
-        assert.equal(door.data().sockOwner, user1Id);
+        assert.equal(door.data().sockOwner, authUser.uid);
       });
   });
 
   it('should remove a sock from the door', () => {
-    return request(myFunctions.removeSock)
-      .delete('/')
-      .query({
-        doorId,
-        userId: user1Id
-      })
+    authUser = { uid: user2Id };
+    return request(app)
+      .delete(`/doors/${doorId}/sock`)
       .then(async res => {
         assert.equal(res.status, 200);
         const door = await db.collection('Doors').doc(doorId).get();
         assert.notProperty(door.data(), 'sockOwner');
       });
   });
+
+  function authStub(req, res, next) {
+    req.user = authUser;
+    next();
+  }
 });
 
