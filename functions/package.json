@@ -13,7 +13,7 @@
     "node": "8"
   },
   "dependencies": {
-    "ajv": "^6.10.2",
+    "ajv": "^6.12.3",
     "express": "^4.17.1",
     "express-validator": "^6.3.0",
     "firebase-admin": "^8.6.0",
